@@ -1,22 +1,25 @@
+from re import T
 import pygame
 import random
 import time
 
 # Initialize
 pygame.init()
+pygame.mixer.init()
 
 # Create screen
 screen = pygame.display.set_mode((800,600))
 
 # Set icon and title
 pygame.display.set_caption("Color Pyramid")
-icon = pygame.image.load('ColorPyramid.png')
+icon = pygame.image.load('Assets/ColorPyramid.png')
 pygame.display.set_icon(icon)
 
 BG     = pygame.Color("#2A9D8F")
 pink   = pygame.Color("#FF006E")
 yellow = pygame.Color("#FFBE0B")
-blue   = pygame.Color("#8338EC")
+blue   = pygame.Color("#1663BE")
+
 
 # 2D List representation of the board:
 grid = [[BG,BG,BG,BG,BG,BG,BG,BG,BG],
@@ -59,22 +62,24 @@ def findBadCells():
             for j in range (4-i, 4+i+1):
                 if checkCell(i,j):
                     badCells.append([i,j])
+        i -= 1
     # Now check rows 0,1:
     while i >= 0:
         for k in range (4-i, 4+i+1):
                 if checkCell(i,k):
                     badCells.append([i,k])
+        i -= 1
 
 
 # The next four finctions are used to actually check the conditions.
 
-# Check if row i has more than 3 yellow cells:
+# Check if row i has more than 4 yellow cells:
 def yellowCondition(i):
     yellowCount = 0
-    for j in range (9):
+    for j in range (4-i, 4+i+1):
         if grid[i][j] is yellow:
             yellowCount += 1
-    if yellowCount >= 4:
+    if yellowCount > 4:
         return False
     else: 
         return True
@@ -82,12 +87,11 @@ def yellowCondition(i):
 # Check relevant conditions in *specific cells*: 
 def checkCell(i,j):
     color = grid[i][j]
-    legalCell = False
     if color is blue and blueCondition(i,j):
-        legalCell = True
+        return True
     elif color is pink and pinkCondition(i,j):
-        legalCell = True
-    return legalCell
+        return True
+    return False
 
 # Check if a blue cell is on the edge of the pyramid
 def blueCondition(i,j):
@@ -103,21 +107,26 @@ def pinkCondition(i,j):
     left = j-1 if j > 0 else j
     right = j+1 if j < 8 else j
 
-    if grid[up][j] is blue or grid[down][j] is blue or grid[i][left] is blue or grid[i][right] is blue:
+    adjacent = [grid[up][j], grid[down][j], grid[i][left], grid[i][right]]
+    if blue in adjacent:
         return True
     else:
         return False
 
 
 # Update cells that don't satisfy conditions
-def updateBoard(badCells):
+def updateBoard():
     for item in badCells:
         i = item[0]
         j = item[1]
         grid[i][j] = random.choice([pink, yellow, blue])
+    badCells.clear()
     drawBoard()
-        
-    
+
+def celebration():
+    celebrationSound = pygame.mixer.Sound('Assets/TADA.ogg')
+    celebrationSound.play()
+
 
 # Set background color and initialize random board
 screen.fill(BG)
@@ -125,18 +134,21 @@ initBoard()
 
 # Game loop:
 running = True
+playing = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False          
     
-    screen.fill(BG)
+    # Wait a moment
+    time.sleep(0.01)
 
     # If the board doesn't satisfy all conditions, fix it
     findBadCells()
     if len(badCells) != 0:
         updateBoard()
-
-    # Wait a moment
-    time.sleep(0.5)
+    elif playing:
+        celebration()
+        playing = False
+        
     pygame.display.update()
